@@ -1,53 +1,76 @@
 # github-app
 
-Mini AI agents system with GitHub/Vercel/Netlify deployment tunnel and intelligent credit management.
+Lightweight AI agent system for safe GitHub and Vercel deployments.
 
-## What this app does
+## What it does
 
-- monitors repository and deployment health
-- maintains a small set of autonomous agents for cleanup, bug scanning, upgrades, and deploy pricing checks
-- lets the app run in demo mode or live mode
-- avoids waste by delaying deploys unless the environment is safe
-- provides a ready-to-deploy Next.js dashboard for Vercel and Netlify
+Three simple agents that keep your deployments safe and efficient:
 
-## Demo mode
+1. **Repo Guardian** — checks repository health before any deploy
+2. **Bug Sweeper** — runs lint and build checks, blocks broken code
+3. **Credit Manager** — avoids unnecessary deploys, protects your budget
 
-The dashboard runs without cloud credentials and behaves safely by simulating checks:
+Then a simple orchestrator that ties them together: demo mode or live mode.
+
+## Demo mode (default)
+
+Safe simulation. No cloud credits spent.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Then open http://localhost:3000.
+Open http://localhost:3000 to see the dashboard.
 
 ## Live mode
 
-Set the following environment variables if you want the app to attempt real integration checks:
+Requires GitHub and Vercel tokens. Set these env vars:
 
 ```bash
-GITHUB_TOKEN=your-token
+GITHUB_TOKEN=your-github-token
 VERCEL_TOKEN=your-vercel-token
 VERCEL_PROJECT_ID=your-project-id
-NETLIFY_TOKEN=your-netlify-token
 APP_MODE=live
 ```
 
-Then start the app:
+Then:
 
 ```bash
 npm run build
 npm run start
 ```
 
-## Built-in agent flow
+## How the agents work
 
-- Repo Guardian: validates repository health
-- Bug Sweeper: scans for broken code before release
-- Credit Manager: keeps spend under control
-- Deploy Ops: chooses the healthiest target
-- Self Upgrader: applies safe upgrades when the system is stable
+- **Repo Guardian** checks branch status, commit history, and file changes
+- **Bug Sweeper** runs build checks (no actual compilation unless live mode)
+- **Credit Manager** verifies Vercel quota and avoids risky deploys
+- **Orchestrator** decides: skip, check, or deploy based on all signals
 
-## Notes
+All decisions are logged. Nothing ships without a green light.
 
-This repo is intentionally designed to preserve credits by default. Demo mode never triggers a cloud deployment unless the user explicitly switches to live mode with valid credentials and a safe environment.
+## Deploy flow
+
+1. User clicks "Run deploy check"
+2. Repo Guardian scans the repo
+3. Bug Sweeper runs syntax/build checks
+4. Credit Manager verifies budget
+5. Orchestrator decides: safe to deploy or hold
+6. If live mode + all green → queue Vercel deploy
+7. If demo mode or any check fails → show reason and stop
+
+## Files
+
+- `app/page.tsx` — main dashboard UI
+- `app/api/status/route.ts` — agent fleet status endpoint
+- `app/api/deploy/route.ts` — deploy check endpoint
+- `lib/agents.ts` — core agent logic
+- `lib/vercel-client.ts` — Vercel API integration
+
+## Credits and safety
+
+- Demo mode never touches the cloud
+- Live mode requires valid tokens and green checks
+- All deploys are logged with a reason
+- Credit/space checks run before every ship

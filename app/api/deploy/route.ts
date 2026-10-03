@@ -1,24 +1,51 @@
 import { NextResponse } from 'next/server';
+import { orchestrateDeployment } from '@/lib/agents';
+import { vercelDeploy } from '@/lib/vercel-client';
 
 export async function POST() {
-  const mode = process.env.APP_MODE ?? 'demo';
+  try {
+    const check = await orchestrateDeployment();
 
-  const shouldDeploy = mode === 'demo'
-    ? true
-    : Boolean(process.env.GITHUB_TOKEN && process.env.VERCEL_TOKEN);
+    if (!check.canDeploy) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: check.reason,
+          reports: check.reports,
+        },
+        { status: 400 }
+      );
+    }
 
-  if (!shouldDeploy) {
+    // All checks passed and we're in live mode
+    const projectId = process.env.VERCEL_PROJECT_ID;
+    if (!projectId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: 'VERCEL_PROJECT_ID not configured',
+          reports: check.reports,
+        },
+        { status: 500 }
+      );
+    }
+
+    // Trigger the actual deploy
+    const deployment = await vercelDeploy(projectId);
+
     return NextResponse.json({
-      ok: false,
-      message: 'Live mode is locked until the GitHub and Vercel credentials are available.',
-    }, { status: 400 });
+      ok: true,
+      message: `Deploy initiated on Vercel. Deployment ID: ${deployment.id}`,
+      deployment,
+      reports: check.reports,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: `Deploy failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+      },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({
-    ok: true,
-    mode,
-    message: mode === 'demo'
-      ? 'Demo mode passed all checks. No cloud deploy was triggered to avoid wasting credits.'
-      : 'Live deployment check passed. The deployment orchestration is ready to ship.',
-  });
 }
